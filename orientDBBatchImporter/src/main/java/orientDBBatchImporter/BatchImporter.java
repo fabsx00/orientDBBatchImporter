@@ -51,7 +51,10 @@ public class BatchImporter
 		factory.declareIntent(new OIntentMassiveInsert());
 
 		noTx = factory.getNoTx();
-		batchGraph = BatchGraph.wrap(noTx);
+		noTx.declareIntent(new OIntentMassiveInsert());
+
+		batchGraph = BatchGraph.wrap(noTx, 1000);
+
 	}
 
 	private static void closeDatabase()
@@ -115,13 +118,14 @@ public class BatchImporter
 
 		String id = row[0];
 
-		String[] properties = new String[2 * (row.length-1)];
+		String[] properties = new String[2 * (row.length - 1)];
 		for (int i = 1; i < row.length; i++)
 		{
 			properties[2 * (i - 1)] = VertexKeys[i];
 			properties[2 * (i - 1) + 1] = row[i];
 		}
 		batchGraph.addVertex(id, properties);
+
 	}
 
 	private static void processEdgeFile() throws IOException
