@@ -115,7 +115,7 @@ public class BatchImporter
 
 		String id = row[0];
 
-		String[] properties = new String[2 * row.length];
+		String[] properties = new String[2 * (row.length-1)];
 		for (int i = 1; i < row.length; i++)
 		{
 			properties[2 * (i - 1)] = VertexKeys[i];
