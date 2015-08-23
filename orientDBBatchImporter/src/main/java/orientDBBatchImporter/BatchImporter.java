@@ -3,15 +3,18 @@ package orientDBBatchImporter;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Random;
 
 import org.apache.commons.cli.ParseException;
 
 import com.opencsv.CSVReader;
 import com.orientechnologies.orient.core.intent.OIntentMassiveInsert;
+import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory;
 import com.tinkerpop.blueprints.util.wrappers.batch.BatchGraph;
+import com.tinkerpop.blueprints.util.wrappers.batch.VertexIDType;
 
 public class BatchImporter
 {
@@ -20,6 +23,7 @@ public class BatchImporter
 	static OrientGraph tx;
 	static BatchGraph<OrientGraph> batchGraph;
 	static String[] VertexKeys;
+	static String[] EdgeKeys;
 
 	public static void main(String[] args)
 	{
@@ -44,14 +48,17 @@ public class BatchImporter
 		OrientGraphFactory factory = new OrientGraphFactory(
 				"plocal:/tmp/tempDB/", "admin", "admin");
 		factory.declareIntent(new OIntentMassiveInsert());
+
+		// batchGraph = factory.getNoTx();
 		tx = factory.getTx();
-		batchGraph = new BatchGraph<OrientGraph>(tx);
+		batchGraph = new BatchGraph<OrientGraph>(tx, VertexIDType.STRING, 1000);
 		// batchGraph.wrap()
 
 	}
 
 	private static void closeDatabase()
 	{
+		tx.commit();
 		tx.shutdown();
 	}
 
@@ -89,7 +96,6 @@ public class BatchImporter
 			throw new RuntimeException("Node file is empty");
 
 		initializeVertexKeys(row);
-
 	}
 
 	private static void initializeVertexKeys(String[] row)
@@ -116,12 +122,63 @@ public class BatchImporter
 		{
 			vertex.setProperty(VertexKeys[i], row[i]);
 		}
+	}
+
+	private static void processEdgeFile() throws IOException
+	{
+		CSVReader csvReader = getCSVReaderForFile(cmdLine.getEdgeFile());
+		processFirstEdgeRow(csvReader);
+
+		String[] row;
+		while ((row = csvReader.readNext()) != null)
+		{
+			processEdgeRow(row);
+		}
 
 	}
 
-	private static void processEdgeFile()
+	private static void processFirstEdgeRow(CSVReader csvReader)
+			throws IOException
 	{
-		// TODO Auto-generated method stub
+		String[] row = csvReader.readNext();
+		if (row == null)
+			throw new RuntimeException("Edge file is empty");
+
+		initializeEdgeKeys(row);
+	}
+
+	private static void initializeEdgeKeys(String[] row)
+	{
+		EdgeKeys = new String[row.length];
+		for (int i = 0; i < row.length; i++)
+		{
+			EdgeKeys[i] = row[i];
+		}
+	}
+
+	private static void processEdgeRow(String[] row)
+	{
+
+		if (row.length < 3)
+			return;
+
+		String srcId = row[0];
+		String dstId = row[1];
+		String label = row[2];
+
+		Vertex outVertex = batchGraph.getVertex(srcId);
+		Vertex inVertex = batchGraph.getVertex(dstId);
+
+		System.out.println(outVertex.getId());
+
+		Edge edge = batchGraph.addEdge(new Random().nextInt(), outVertex,
+				inVertex, label);
+
+		for (int i = 3; i < row.length; i++)
+		{
+			edge.setProperty(EdgeKeys[i], row[i]);
+		}
+
 	}
 
 	private static CSVReader getCSVReaderForFile(String filename)
