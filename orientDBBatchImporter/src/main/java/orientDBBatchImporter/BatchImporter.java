@@ -13,17 +13,17 @@ import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory;
+import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
 import com.tinkerpop.blueprints.util.wrappers.batch.BatchGraph;
-import com.tinkerpop.blueprints.util.wrappers.batch.VertexIDType;
 
 public class BatchImporter
 {
 
 	static CommandLineInterface cmdLine = new CommandLineInterface();
-	static OrientGraph tx;
 	static BatchGraph<OrientGraph> batchGraph;
 	static String[] VertexKeys;
 	static String[] EdgeKeys;
+	private static OrientGraphNoTx noTx;
 
 	public static void main(String[] args)
 	{
@@ -36,7 +36,8 @@ public class BatchImporter
 			processNodeFile();
 			processEdgeFile();
 			closeDatabase();
-		} catch (IOException e)
+		}
+		catch (IOException e)
 		{
 			e.printStackTrace();
 		}
@@ -49,17 +50,14 @@ public class BatchImporter
 				"plocal:/tmp/tempDB/", "admin", "admin");
 		factory.declareIntent(new OIntentMassiveInsert());
 
-		// batchGraph = factory.getNoTx();
-		tx = factory.getTx();
-		batchGraph = new BatchGraph<OrientGraph>(tx, VertexIDType.STRING, 1000);
-		// batchGraph.wrap()
-
+		noTx = factory.getNoTx();
+		batchGraph = BatchGraph.wrap(noTx);
 	}
 
 	private static void closeDatabase()
 	{
-		tx.commit();
-		tx.shutdown();
+		batchGraph.shutdown();
+		noTx.shutdown();
 	}
 
 	private static void parseCommandLine(String[] args)
@@ -67,7 +65,8 @@ public class BatchImporter
 		try
 		{
 			cmdLine.parseCommandLine(args);
-		} catch (RuntimeException | ParseException e)
+		}
+		catch (RuntimeException | ParseException e)
 		{
 			printHelpAndTerminate(e);
 		}
@@ -168,8 +167,6 @@ public class BatchImporter
 
 		Vertex outVertex = batchGraph.getVertex(srcId);
 		Vertex inVertex = batchGraph.getVertex(dstId);
-
-		System.out.println(outVertex.getId());
 
 		Edge edge = batchGraph.addEdge(new Random().nextInt(), outVertex,
 				inVertex, label);
