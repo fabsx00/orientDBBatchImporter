@@ -115,12 +115,13 @@ public class BatchImporter
 
 		String id = row[0];
 
-		Vertex vertex = batchGraph.addVertex(id);
-
+		String[] properties = new String[2 * row.length];
 		for (int i = 0; i < row.length; i++)
 		{
-			vertex.setProperty(VertexKeys[i], row[i]);
+			properties[2 * i] = VertexKeys[i];
+			properties[2 * i + 1] = row[i];
 		}
+		batchGraph.addVertex(id, properties);
 	}
 
 	private static void processEdgeFile() throws IOException
