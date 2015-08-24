@@ -3,11 +3,11 @@ package orientDBBatchImporter;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Random;
 
 import org.apache.commons.cli.ParseException;
 
 import com.opencsv.CSVReader;
+import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.intent.OIntentMassiveInsert;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
@@ -46,6 +46,9 @@ public class BatchImporter
 
 	private static void openDatabase()
 	{
+		OGlobalConfiguration.USE_WAL.setValue(false);
+		OGlobalConfiguration.WAL_SYNC_ON_PAGE_FLUSH.setValue(false);
+
 		OrientGraphFactory factory = new OrientGraphFactory(
 				"plocal:/tmp/tempDB/", "admin", "admin");
 		factory.declareIntent(new OIntentMassiveInsert());
@@ -173,8 +176,7 @@ public class BatchImporter
 		Vertex outVertex = batchGraph.getVertex(srcId);
 		Vertex inVertex = batchGraph.getVertex(dstId);
 
-		Edge edge = batchGraph.addEdge(new Random().nextInt(), outVertex,
-				inVertex, label);
+		Edge edge = batchGraph.addEdge(0, outVertex, inVertex, label);
 
 		for (int i = 3; i < row.length; i++)
 		{
